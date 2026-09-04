@@ -2,7 +2,7 @@ import userModel from "../model/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
-import { decode } from "node:punycode";
+import sessionModel from "../model/session.model.js";
 
 export const userRegisterController = async (req, res) => {
   const { username, email, password } = req.body;
@@ -35,6 +35,15 @@ export const userRegisterController = async (req, res) => {
 
   const refreshToken = jwt.sign({ id: user._id }, config.JWT_SCRET, {
     expiresIn: "7d",
+  });
+
+  const salt = await bcrypt.genSalt(10);
+  const refreshTokenHash = await bcrypt.hash(refreshToken, salt);
+
+  const session = await sessionModel.create({
+    userId: user._id.refreshTokenHash,
+    ip: req.ip,
+    userAgent: req.headers["user-agent"],
   });
 
   res.cookie("refreshToken", refreshToken, {
@@ -107,7 +116,6 @@ export const getRefreshTokenController = async (req, res) => {
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-
 
   res.status(200).json({
     messaage: "Access token",
