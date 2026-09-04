@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 import sessionModel from "../model/session.model.js";
+import { model } from "mongoose";
 
 export const userRegisterController = async (req, res) => {
   const { username, email, password } = req.body;
@@ -178,4 +179,44 @@ export const logoutUserController = async (req, res) => {
   res.status(200).json({
     message: "Logged out successfully",
   });
+};
+
+export const logoutAllUserController = async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(400).json({
+      messaage: "Refresh token not found",
+    });
+  }
+
+  const decoded = jwt.verify(refreshToken, config.JWT_SCRET);
+
+  await sessionModel.updateMany(
+    {
+      user: decoded.id,
+      revoked: false,
+    },
+    {
+      revoked: true,
+    },
+  );
+
+  res.clearCookie("refreshToken");
+
+  res.status(200).json({
+    message: "Logged out from all devices sucessfully",
+  });
+};
+
+export const loginUserController = async (req, res) => {
+  const { email, password } = req.boady;
+
+  const user = await userModel.findOne({ email });
+
+  if (!user) {
+    return res.status(401).json({
+      message: "Incorrect Email",
+    });
+  }
 };
