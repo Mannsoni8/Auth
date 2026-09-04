@@ -3,7 +3,6 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 import sessionModel from "../model/session.model.js";
-import { model } from "mongoose";
 
 export const userRegisterController = async (req, res) => {
   const { username, email, password } = req.body;
@@ -219,4 +218,61 @@ export const loginUserController = async (req, res) => {
       message: "Incorrect Email",
     });
   }
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if (!isMatch) {
+    return res.status(401).json({
+      message: "Invalid email or password",
+    });
+  }
+
+  const refreshToken = jwt.sign(
+    {
+      id: user._id,
+    },
+    config.JWT_SCRET,
+    {
+      expiresIn: "7d",
+    },
+  );
+
+  const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+  const session = await sessionModel.findOne({
+    user: user._id,
+    refreshTokenHash,
+    ip: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
+  if (!session) {
+    return res.status(400).json({
+      messaage: "Invalid refresh token",
+    });
+  }
+
+  const accessToken = jwt.sign(
+    { id: user._id, sessionId: session._id },
+    config.JWT_SCRET,
+    {
+      expiresIn: "15m",
+    },
+  );
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.status(200).json({
+    messaage: "Logged In successfully ",
+    user: {
+      username: user.username,
+      email: user.email,
+    },
+    accessToken,
+  });
 };
