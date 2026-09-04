@@ -108,6 +108,19 @@ export const getRefreshTokenController = async (req, res) => {
 
   const decoded = jwt.verify(refreshToken, config.JWT_SCRET);
 
+  const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+  const session = await sessionModel.findOne({
+    refreshTokenHash,
+    revoked: false,
+  });
+
+  if (!session) {
+    return res.status(400).json({
+      messaage: "Invalid refresh token",
+    });
+  }
+
   const accessToken = jwt.sign({ id: user._id }, config.JWT_SCRET, {
     expiresIn: "15m",
   });
@@ -115,6 +128,13 @@ export const getRefreshTokenController = async (req, res) => {
   const newRefreshToken = jwt.sign({ id: decode }, config.JWT_SCRET, {
     expiresIn: "7d",
   });
+
+  const newRefreshTokenHash = await bcrypt.hash(refreshTokenHash, 10);
+
+  session.refreshTokenHash = newRefreshTokenHash;
+
+  await session.save();
+
   res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
     secure: true,
@@ -125,5 +145,37 @@ export const getRefreshTokenController = async (req, res) => {
   res.status(200).json({
     messaage: "Access token",
     accessToken,
+  });
+};
+
+export const logoutUserController = async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!refreshToken) {
+    res.status(400).json({
+      messaage: "Refresh token not found",
+    });
+  }
+
+  const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+  const session = await sessionModel.findOne({
+    refreshTokenHash,
+    revoked: false,
+  });
+
+  if (!session) {
+    return res.status(400).json({
+      messaage: "Invalid refresh token",
+    });
+  }
+
+  session.revoked = true;
+  await session.save();
+
+  res.clearCookie("refreshToken");
+
+  res.status(200).json({
+    message: "Logged out successfully",
   });
 };
