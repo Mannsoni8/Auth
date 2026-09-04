@@ -39,7 +39,7 @@ export const userRegisterController = async (req, res) => {
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
@@ -87,11 +87,30 @@ export const getRefreshTokenController = async (req, res) => {
   const refreshToken = req.cookie.refreshToken;
 
   if (!refreshToken) {
-     return res.status(401).json({
+    return res.status(401).json({
       message: "Token is not found",
     });
   }
 
-  const decoded
+  const decoded = jwt.verify(refreshToken, config.JWT_SCRET);
 
+  const accessToken = jwt.sign({ id: user._id }, config.JWT_SCRET, {
+    expiresIn: "15m",
+  });
+
+  const newRefreshToken = jwt.sign({ id: decode }, config.JWT_SCRET, {
+    expiresIn: "7d",
+  });
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+
+  res.status(200).json({
+    messaage: "Access token",
+    accessToken,
+  });
 };
