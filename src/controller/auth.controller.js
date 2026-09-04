@@ -29,10 +29,6 @@ export const userRegisterController = async (req, res) => {
     password: await bcrypt.hash(password, 10),
   });
 
-  const accessToken = jwt.sign({ id: user._id }, config.JWT_SCRET, {
-    expiresIn: "15m",
-  });
-
   const refreshToken = jwt.sign({ id: user._id }, config.JWT_SCRET, {
     expiresIn: "7d",
   });
@@ -41,10 +37,19 @@ export const userRegisterController = async (req, res) => {
   const refreshTokenHash = await bcrypt.hash(refreshToken, salt);
 
   const session = await sessionModel.create({
-    userId: user._id.refreshTokenHash,
+    userId: user._id,
+    refreshTokenHash,
     ip: req.ip,
     userAgent: req.headers["user-agent"],
   });
+
+  const accessToken = jwt.sign(
+    { id: user._id, sessionId: session._id },
+    config.JWT_SCRET,
+    {
+      expiresIn: "15m",
+    },
+  );
 
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
