@@ -15,8 +15,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "Password is required"],
   },
+  verfied: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const userModel = mongoose.model("user",userSchema)
+const userModel = mongoose.model("user", userSchema);
 
-export default userModel
+export default userModel;
