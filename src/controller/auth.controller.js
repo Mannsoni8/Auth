@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 import sessionModel from "../model/session.model.js";
 import { sendEmail } from "../services/email.js";
+import { generateOtp, getOtpHtml } from "../utils/utils.js";
+import otpModel from "../model/otp.model.js";
 
 export const userRegisterController = async (req, res) => {
   const { username, email, password } = req.body;
@@ -59,17 +61,23 @@ export const userRegisterController = async (req, res) => {
   //   maxAge: 7 * 24 * 60 * 60 * 1000,
   // });
 
-  
-  await sendEmail(email)
+  const otp = generateOtp();
+  const html = getOtpHtml();
+
+  const otpHash = await bcrypt.hash(otp, 10);
+  await otpModel.create({
+    email,
+    user: user._id,
+    otpHash,
+  });
 
   return res.status(201).json({
     message: "User register ",
     use: {
       username: user.username,
       email: user.email,
-      verified:user.verified
+      verified: user.verified,
     },
-
   });
 };
 
