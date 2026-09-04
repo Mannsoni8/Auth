@@ -232,6 +232,12 @@ export const loginUserController = async (req, res) => {
     });
   }
 
+  if (!user.verified) {
+    return res.status(401).json({
+      message: "Email not verified",
+    });
+  }
+
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
@@ -287,5 +293,39 @@ export const loginUserController = async (req, res) => {
       email: user.email,
     },
     accessToken,
+  });
+};
+
+export const emailVerifyController = async (req, res) => {
+  const { otp, email } = req.boady;
+
+  const otpHash = await bcrypt.hash(otp, 10);
+
+  const otpDoc = await otpModel.findOne({
+    email,
+    otpHash,
+  });
+
+  if (!otpDoc) {
+    return res.status(400).json({
+      message: "Invalid OTP",
+    });
+  }
+
+  const user = await userModel.findByIdAndUpdate(otpDoc.user, {
+    verified: true,
+  });
+
+  await otpModel.deleteMany({
+    user: otpDoc.user,
+  });
+
+  return res.status(200).json({
+    message: "Email verified successfully",
+    user: {
+      username: user.username,
+      email: user.email,
+      verified: user.verified,
+    },
   });
 };

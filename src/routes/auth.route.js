@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getRefreshTokenController, getUserController, loginUserController, logoutAllUserController, logoutUserController, userRegisterController } from "../controller/auth.controller.js";
+import { emailVerifyController, getRefreshTokenController, getUserController, loginUserController, logoutAllUserController, logoutUserController, userRegisterController } from "../controller/auth.controller.js";
 
 const router = Router()
 
@@ -14,5 +14,7 @@ router.get('/refresh-token',getRefreshTokenController)
 router.get('/logout',logoutUserController)
 
 router.get('/logout-all',logoutAllUserController)
+
+router.get('/verify-email',emailVerifyController)
 
 export default router
