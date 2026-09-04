@@ -98,7 +98,7 @@ export const getUserController = async (req, res) => {
 };
 
 export const getRefreshTokenController = async (req, res) => {
-  const refreshToken = req.cookie.refreshToken;
+  const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
     return res.status(401).json({
@@ -121,15 +121,15 @@ export const getRefreshTokenController = async (req, res) => {
     });
   }
 
-  const accessToken = jwt.sign({ id: user._id }, config.JWT_SCRET, {
+  const accessToken = jwt.sign({ id: decode }, config.JWT_SCRET, {
     expiresIn: "15m",
   });
 
-  const newRefreshToken = jwt.sign({ id: decode }, config.JWT_SCRET, {
+  const newRefreshToken = jwt.sign({ id: decode.id }, config.JWT_SCRET, {
     expiresIn: "7d",
   });
 
-  const newRefreshTokenHash = await bcrypt.hash(refreshTokenHash, 10);
+  const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
 
   session.refreshTokenHash = newRefreshTokenHash;
 
